@@ -47,9 +47,8 @@ Go benchmark folder
 ```
 cd code/benchmark
 ```
-We used Qwen/Qwen3-32B as an example to show how to run our code, you can specify other models like "meta-llama"
-
-* zero-shot prompting
+We used Qwen/Qwen3-32B as an example to show how to run our code,
+<!-- * zero-shot prompting
     ```bash
     python benchmark_LLM.py 
         --model_name_or_path=Qwen/Qwen3-32B \
@@ -63,7 +62,7 @@ We used Qwen/Qwen3-32B as an example to show how to run our code, you can specif
         --mode=infer
         --prompt=cot
         --enable_think=True
-    ```
+    ``` -->
 
 * expert-cot prompting
     ```bash
@@ -82,6 +81,38 @@ cd code/EMSRAG
 ```
 
 We used Qwen/Qwen3-32B as an example to show how to run our code, you can specify other models like "meta-llama"
+*  Expert-RAG-GT:
+    ```bash
+    python ems_rag.py 
+        --model_name_or_path=Qwen/Qwen3-32B \
+        --mode=infer \
+        --prompt=cot_attr \
+        --use_kb=True \
+        --kb_k=32 \
+        --use_pr=True \
+        --pr_k=8 \
+        --filter_mode=retrieve_then_filter \
+        --use_adapter=False \
+        --enable_think=True
+    ```
+
+    Retrieval mode: **Filter then Retrieve (FTR)**
+    
+    ```bash
+    python ems_rag.py 
+        --model_name_or_path=Qwen/Qwen3-32B \
+        --mode=infer \
+        --prompt=cot_attr \
+        --use_kb=True \
+        --kb_k=32 \
+        --use_pr=True \
+        --pr_k=8 \
+        --filter_mode=filter_then_retrieve \
+        --use_adapter=False \
+        --enable_think=True
+    ```
+
+
 *  Expert-RAG-Filter: 
     
     Retrieval mode: **Retrieve then Filter (RTF)**
@@ -116,7 +147,7 @@ We used Qwen/Qwen3-32B as an example to show how to run our code, you can specif
         --enable_think=True
     ```
 
-    Retrieval mode: **Global**
+    <!-- Retrieval mode: **Global**
     
     ```bash
     python ems_rag.py 
@@ -130,14 +161,14 @@ We used Qwen/Qwen3-32B as an example to show how to run our code, you can specif
         --filter_mode=global \
         --use_adapter=True \
         --enable_think=True
-    ```
+    ``` -->
 
-There are some other specifications you can set to run the experiments,
-* **Ground-truth expertise label**: use_adapter=False
-* **Use only KB as retrieval documents**: --use_kb=True --kb_k=32 --use_pr=False --pr_k=0
-* **Use only PR as retrieval documents**: --use_kb=False --kb_k=0 --use_pr=True --pr_k=8
+<!-- There are some other specifications you can set to run the experiments, -->
+<!-- * **Ground-truth expertise label**: use_adapter=False -->
+<!-- * **Use only KB as retrieval documents**: --use_kb=True --kb_k=32 --use_pr=False --pr_k=0 -->
+<!-- * **Use only PR as retrieval documents**: --use_kb=False --kb_k=0 --use_pr=True --pr_k=8
 * **Different prompting**: --prompt=cot/zero-shot
-* **Run evaluation to get accuracy and f1-score**: mode=eval
+* **Run evaluation to get accuracy and f1-score**: mode=eval -->
 
 
 ### Code to crawl EMS-MCQA and KB

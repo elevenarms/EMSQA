@@ -15,14 +15,14 @@ Code repository: **Expert-Guided Prompting and Retrieval-Augmented Generation fo
 3. We benchmark multiple LLMs on EMSQA, evaluating performance across certification levels and subject areas, and compare our framework against SOTA RAG methods. Experimental results show that combining Expert-CoT and ExpertRAG yields up to a 4.67% improvement in accuracy. Notably, the **32B expertise-augmented models pass all the EMS certification simulation exams**.
 
 ### Data, Knowledge Base and Patient Records
-#### Dataset
-Download from Huggingface [EMS-MCQA](https://huggingface.co/datasets/Xueren/EMS-MCQA)
+* #### Dataset
+    Download from Huggingface [EMS-MCQA](https://huggingface.co/datasets/Xueren/EMS-MCQA)
 
-#### Knowledge base
-Download from Huggingface [EMS-Knowledge](https://huggingface.co/datasets/Xueren/EMS-Knowledge). We also upload the embedding encoded by MedCPT to [link](https://drive.google.com/drive/folders/1a7BC6okBMoqS4j6zY5vECn-X-7xUzdnN?usp=drive_link), where you can download and directly load using FAISS.
+* #### Knowledge base
+    Download from Huggingface [EMS-Knowledge](https://huggingface.co/datasets/Xueren/EMS-Knowledge). We also upload the embedding encoded by MedCPT to [link](https://drive.google.com/drive/folders/1a7BC6okBMoqS4j6zY5vECn-X-7xUzdnN?usp=drive_link), where you can download and directly load using FAISS.
 
-#### Patient Records
-Apply at [NEMSIS](https://nemsis.org/using-ems-data/request-research-data/) to request the patient records, and use our scripts to process the data. Or you can download the embedding encoded by MedCPT from [link](https://drive.google.com/drive/folders/1_362lCph863LXtrR-vNHuT8nQhTSzdmQ?usp=sharing), and directly load using FAISS.
+* #### Patient Records
+    Apply at [NEMSIS](https://nemsis.org/using-ems-data/request-research-data/) to request the patient records, and use our scripts to process the data. Or you can download the embedding encoded by MedCPT from [link](https://drive.google.com/drive/folders/1_362lCph863LXtrR-vNHuT8nQhTSzdmQ?usp=sharing), and directly load using FAISS.
 
 ### Expert-CoT and Expert-RAG
 ![Expert-CoT, ExpertRAG](figure/ExpertRAG.drawio.png)
@@ -34,11 +34,11 @@ Expert-CoT prompting guides the model’s reasoning by explicitly providing the 
 #### Expert-RAG (Right)
 The filter’s predicted subject area guides the retriever to search for relevant knowledge base entries and patient records tailored to the question’s subject area. The LLM then conditions on the predicted expertise and the retrieved documents to generate the final answer. 
 
-**Global**: Retrieve the top M and N evidence documents from the entire KB and PR, respectively. 
+* **Global**: Retrieve the top M and N evidence documents from the entire KB and PR, respectively. This is a baseline.
 
-**Filter then Retrieve (FTR)**: First filter the whole KB and PR to retain only documents matching the predicted subject area, then retrieve the top M and N documents from these filtered subsets
+* **Filter then Retrieve (FTR)**: First filter the whole KB and PR to retain only documents matching the predicted subject area, then retrieve the top M and N documents from these filtered subsets
 
-**Retrieve then Filter (RTF)**: First retrieve a larger candidate set from the whole KB and PR (e.g., 10 × Mfrom KB and 10 × N from PR), then filter out documents whose subject area do not match ˆsi, retaining the top M and N relevant documents
+* **Retrieve then Filter (RTF)**: First retrieve a larger candidate set from the whole KB and PR (e.g., 10 × Mfrom KB and 10 × N from PR), then filter out documents whose subject area do not match ˆsi, retaining the top M and N relevant documents
 
 ### How to run the code
 
@@ -172,10 +172,8 @@ We used Qwen/Qwen3-32B in the experiment to run our code,
 
 
 ### Code to crawl EMS-MCQA and KB
-Go to these folders to check how to do crawling
-
-**EMS-MCQA (close source)**
-check code/app-emtprep-com
+* **EMS-MCQA (close source)**
+    check code/app-emtprep-com, you need to specify the username, and password in the script after subscribing the [app](https://emtprep.com/?gad_campaignid=54601715&gad_source=1&gbraid=0AAAAAD4nqI3ZG6xtgN9rrXkIzNt3kIXEy&gclid=Cj0KCQiAoZDJBhC0ARIsAERP-F8RjEkQXSQSaH8M60flf1Pt-m6-jUUWXakvvyxmKj43vhZOWNTBn8AaAj7tEALw_wcB).
 <!-- 2. jblearning-com
 
 **EMS-MCQA (open source)**

@@ -47,7 +47,7 @@ Go benchmark folder
 ```
 cd code/benchmark
 ```
-We used Qwen/Qwen3-32B as an example to show how to run our code,
+We used Qwen/Qwen3-32B in our experiment to run our code,
 <!-- * zero-shot prompting
     ```bash
     python benchmark_LLM.py 
@@ -80,7 +80,7 @@ Go EMSRAG folder
 cd code/EMSRAG
 ```
 
-We used Qwen/Qwen3-32B as an example to show how to run our code, you can specify other models like "meta-llama"
+We used Qwen/Qwen3-32B in the experiment to run our code,
 *  Expert-RAG-GT:
     ```bash
     python ems_rag.py 

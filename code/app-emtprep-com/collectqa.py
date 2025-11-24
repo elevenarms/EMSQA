@@ -138,8 +138,8 @@ def web_crawl(trial, level, section):
     password_field = wait.until(EC.presence_of_element_located((By.NAME, "password")))
 
     # Enter credentials
-    username_field.send_keys("zar8jw@virginia.edu")  # Replace with actual email
-    password_field.send_keys("X39SnHjp@w@J49g")  # Replace with actual password
+    username_field.send_keys("")  # Replace with actual email
+    password_field.send_keys("")  # Replace with actual password
     password_field.send_keys(Keys.RETURN)
 
     time.sleep(5)

@@ -40,6 +40,17 @@ SYSTEM_PROMPTS = {
         "answer to the following multiple-choice question. Respond ONLY in the "
         "JSON schema provided."
     ),
+    "cot": (
+        "You are an expert in EMS. Choose the correct answer to the following "
+        "multiple-choice question. Please first think step-by-step and then "
+        "choose the answer from the provided options. Respond ONLY in the JSON "
+        "schema provided."
+    ),
+    "cot_attr": (
+        "You are an expert Emergency Medical Services (EMS) educator. Answer "
+        "multiple-choice questions at the requested certification depth, using "
+        "evidence-based reasoning. Respond ONLY in the JSON schema provided."
+    ),
 }
 
 USER_TEMPLATES = {
@@ -52,7 +63,27 @@ USER_TEMPLATES = {
         "Question: {question}\n\nChoices:\n{choices}\n\n"
         'Return your final answer as a lowercase letter in strict JSON format, like: ["a"]'
     ),
+    "cot": (
+        "Question: {question}\n\nChoices:\n{choices}\n\n"
+        "Think step-by-step, then output JSON exactly in this format (no extra keys):\n\n"
+        "```json\n{{\n"
+        '  "step_by_step_thinking": "<concise explanation here>",\n'
+        '  "answer": "A" or ["A", "B"]\n'
+        "}}\n```"
+    ),
+    "cot_attr": (
+        "Certification_Level: {level}\nCategory: {category}\n\n"
+        "Question: {question}\n\nChoices:\n{choices}\n\n"
+        "Think step-by-step from the standpoint of {category}, then output JSON "
+        "exactly in this format (no extra keys):\n\n"
+        "```json\n{{\n"
+        '  "step_by_step_thinking": "<concise explanation here>",\n'
+        '  "answer": "A" or ["A", "B"]\n'
+        "}}\n```"
+    ),
 }
+
+COT_MODES = {"cot", "cot_attr"}
 
 CATEGORIES = [
     "airway_respiration_and_ventilation",
@@ -102,6 +133,30 @@ def extract_json_answer(response):
         return [boxed.group(1).lower()]
 
     return None
+
+
+def extract_cot_answer(response):
+    """Extract answer from a CoT JSON-object response like {"answer": "a", ...}.
+
+    Returns (answer_list, thinking_str). answer_list is like ["a"] or None.
+    """
+    matches = re.findall(r'\{.*?\}', response, re.DOTALL)
+    for json_str in reversed(matches):  # prefer last match
+        try:
+            obj = json.loads(json_str)
+            if isinstance(obj, dict) and "answer" in obj:
+                ans = obj["answer"]
+                thinking = obj.get("step_by_step_thinking", "")
+                if isinstance(ans, list):
+                    return [str(x).lower().strip() for x in ans], thinking
+                elif isinstance(ans, str):
+                    return [ans.lower().strip()], thinking
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # Fallback: try the array-based extractor
+    pred = extract_json_answer(response)
+    return pred, None
 
 
 # ── metric functions (mirrors existing benchmark) ────────────────────────────
@@ -194,9 +249,9 @@ def run_inference(args):
         level = sample["level"][0]
         category = ";".join(sample["category"])
 
-        if args.prompt == "zeroshot":
+        if args.prompt in ("zeroshot", "cot"):
             user_msg = user_tpl.format(question=question, choices=choices)
-        else:  # zeroshot_attr
+        else:  # zeroshot_attr, cot_attr
             user_msg = user_tpl.format(
                 level=level, category=category,
                 question=question, choices=choices,
@@ -220,10 +275,19 @@ def run_inference(args):
         response = outputs[0]["generated_text"][-1]["content"]
 
         # Extract answer
-        pred = extract_json_answer(response)
+        is_cot = args.prompt in COT_MODES
+        if is_cot:
+            pred, thinking = extract_cot_answer(response)
+        else:
+            pred = extract_json_answer(response)
+            thinking = None
+
         if pred is not None:
+            log_obj = {"pred": pred, "time": t_infer}
+            if thinking is not None:
+                log_obj["step_by_step_thinking"] = thinking
             with open(log_path, "w") as f:
-                json.dump({"pred": pred, "time": t_infer}, f, indent=4)
+                json.dump(log_obj, f, indent=4)
         else:
             # Save raw response as .txt for debugging, and a json with null pred
             txt_path = os.path.join(log_dir, f"{idx}.txt")
@@ -233,6 +297,8 @@ def run_inference(args):
                 json.dump({"pred": None, "time": t_infer}, f, indent=4)
             print(f"\n[WARN] Sample {idx}: could not extract answer. Raw saved to {txt_path}")
 
+    # Release model from GPU before returning
+    del pipe
     return log_dir
 
 
@@ -388,11 +454,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="EMSQA Benchmark Runner (HuggingFace Transformers)",
     )
-    parser.add_argument("--model", type=str,
-                        default="meta-llama/Llama-3.1-8B-Instruct",
-                        help="HF model name or local path")
+    parser.add_argument("--model", type=str, nargs="+",
+                        default=["meta-llama/Llama-3.1-8B-Instruct"],
+                        help="One or more HF model names / local paths "
+                             "(run sequentially)")
     parser.add_argument("--prompt", type=str, default="zeroshot",
-                        choices=["zeroshot", "zeroshot_attr"],
+                        choices=["zeroshot", "zeroshot_attr", "cot", "cot_attr"],
                         help="Prompt mode")
     parser.add_argument("--data", type=str,
                         default="data/final/test_open.json",
@@ -410,8 +477,9 @@ def main():
                         help="Start index of data slice")
     parser.add_argument("--end", type=int, default=-1,
                         help="End index of data slice (-1 = all)")
-    parser.add_argument("--max-new-tokens", type=int, default=128,
-                        help="Max generation length")
+    parser.add_argument("--max-new-tokens", type=int, default=None,
+                        help="Max generation length (default: 128 for zeroshot, "
+                             "8192 for cot modes)")
     parser.add_argument("--temperature", type=float, default=0.1,
                         help="Sampling temperature")
     parser.add_argument("--dtype", type=str, default="bfloat16",
@@ -419,12 +487,38 @@ def main():
                         help="Model dtype")
     args = parser.parse_args()
 
-    if args.mode == "infer":
-        log_dir = run_inference(args)
-        print("\nInference complete. Running evaluation...")
-        run_evaluation(args, log_dir=log_dir)
-    else:
-        run_evaluation(args)
+    # Default max_new_tokens: short for MCQA, longer for CoT
+    if args.max_new_tokens is None:
+        args.max_new_tokens = 8192 if args.prompt in COT_MODES else 128
+
+    models = args.model  # list of 1+ model names
+    for i, model_name in enumerate(models):
+        if len(models) > 1:
+            print(f"\n{'#'*60}")
+            print(f"# Model {i+1}/{len(models)}: {model_name}")
+            print(f"{'#'*60}")
+
+        # Set the current model and reset per-model dirs so each model
+        # gets its own log/results path (unless user explicitly set them
+        # for a single-model run).
+        args.model = model_name
+        if len(models) > 1:
+            args.log_dir = None
+            args.results_dir = None
+
+        if args.mode == "infer":
+            log_dir = run_inference(args)
+            print("\nInference complete. Running evaluation...")
+            run_evaluation(args, log_dir=log_dir)
+        else:
+            run_evaluation(args)
+
+        # Free GPU memory before loading the next model
+        if i < len(models) - 1:
+            import gc
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
